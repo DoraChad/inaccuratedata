@@ -3,33 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <title>Inaccurate PP4 Data Statistics</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        table {
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 800px;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 6px 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #eee;
+        }
+        input, select, button {
+            margin: 5px 0;
+            padding: 4px 8px;
+            font-size: 14px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Inaccurate PP4 Data Statistics</h1>
+<h1>Inaccurate PP4 Data Statistics</h1>
 
-    <h2>Top 10 General Playtime</h2>
-    <ul id="topPlaytime"></ul>
+<h2>Top 10 General Playtime</h2>
+<table id="topPlaytimeTable"><tbody></tbody></table>
 
-    <h2>Top 10 General Resets</h2>
-    <ul id="topResets"></ul>
+<h2>Top 10 General Resets</h2>
+<table id="topResetsTable"><tbody></tbody></table>
 
-    <h2>Search Player</h2>
-    <input list="playerNames" id="searchInput" placeholder="Enter player name">
-    <datalist id="playerNames"></datalist>
-    <button onclick="searchPlayer()">Search</button>
-    <div id="searchResult"></div>
+<h2>Search Player</h2>
+<input list="playerNames" id="searchInput" placeholder="Enter player name">
+<datalist id="playerNames"></datalist>
+<button onclick="searchPlayer()">Search</button>
+<div id="searchResult"></div>
 
-    <h2>Track Leaderboard</h2>
-    <select id="trackSelect" onchange="renderTrackLeaderboard()"></select>
-    <button onclick="toggleTrackLeaderboard()">Toggle Playtime / Resets</button>
-    <ul id="trackLeaderboard"></ul>
+<h2>Track Leaderboard</h2>
+<select id="trackSelect" onchange="renderTrackLeaderboard()"></select>
+<button onclick="toggleTrackLeaderboard()">Toggle Playtime / Resets</button>
+<table id="trackLeaderboardTable"><tbody></tbody></table>
 
 <script>
 let data = null;
 let userIdToName = {};
 let trackLeaderboardMode = 'playtime'; // 'playtime' or 'resets'
 
-// Helper to format seconds
 function formatSeconds(seconds) {
     const d = Math.floor(seconds / 86400);
     seconds %= 86400;
@@ -39,22 +62,21 @@ function formatSeconds(seconds) {
     const s = Math.floor(seconds % 60);
 
     let parts = [];
-    if (d) parts.push(d + 'd');
-    if (h) parts.push(h + 'h');
-    if (m) parts.push(m + 'm');
-    if (s || parts.length === 0) parts.push(s + 's');
+    if(d) parts.push(d + 'd');
+    if(h) parts.push(h + 'h');
+    if(m) parts.push(m + 'm');
+    if(s || parts.length === 0) parts.push(s + 's');
 
     return parts.join(' ');
 }
 
-// Build userId -> name map by scanning all arrays in data
 function buildUserIdToNameMap() {
     const map = {};
-    for (const key of Object.keys(data)) {
+    for(const key of Object.keys(data)) {
         const arr = data[key];
-        if (!Array.isArray(arr)) continue;
+        if(!Array.isArray(arr)) continue;
         arr.forEach(entry => {
-            if (entry.userId && entry.name) {
+            if(entry.userId && entry.name) {
                 map[entry.userId] = entry.name;
             }
         });
@@ -62,18 +84,15 @@ function buildUserIdToNameMap() {
     return map;
 }
 
-// Fix player_stats to parse tracks JSON and calculate totals
 function calculateTotals() {
     const fixed = {};
-
-    for (const entry of data.player_stats) {
+    for(const entry of data.player_stats) {
         const userId = entry.userId;
         const tracksObject = JSON.parse(entry.tracks);
 
         let totalPlaytime = 0;
         let totalResets = 0;
-
-        for (const stats of Object.values(tracksObject)) {
+        for(const stats of Object.values(tracksObject)) {
             totalPlaytime += stats.playtime || 0;
             totalResets += stats.resets || 0;
         }
@@ -84,11 +103,9 @@ function calculateTotals() {
             totalResets
         };
     }
-
     data.player_stats_fixed = fixed;
 }
 
-// Populate autocomplete for player search
 function populateAutocomplete() {
     const dataList = document.getElementById("playerNames");
     dataList.innerHTML = "";
@@ -100,7 +117,6 @@ function populateAutocomplete() {
     });
 }
 
-// Render top 10 lists
 function renderTop10() {
     const players = Object.entries(data.player_stats_fixed)
         .map(([userId, stats]) => ({
@@ -111,37 +127,36 @@ function renderTop10() {
     const topPlaytime = [...players].sort((a,b) => b.totalPlaytime - a.totalPlaytime).slice(0,10);
     const topResets   = [...players].sort((a,b) => b.totalResets - a.totalResets).slice(0,10);
 
-    const playtimeList = document.getElementById("topPlaytime");
-    playtimeList.innerHTML = "";
-    topPlaytime.forEach(p => {
-        let li = document.createElement("li");
-        li.textContent = `${p.name} - ${formatSeconds(p.totalPlaytime)}`;
-        playtimeList.appendChild(li);
+    const playtimeTable = document.getElementById("topPlaytimeTable").querySelector("tbody");
+    playtimeTable.innerHTML = "";
+    topPlaytime.forEach((p,i) => {
+        const row = document.createElement("tr");
+        row.innerHTML = `<td>${i+1}</td><td>${p.name}</td><td>${formatSeconds(p.totalPlaytime)}</td>`;
+        playtimeTable.appendChild(row);
     });
 
-    const resetsList = document.getElementById("topResets");
-    resetsList.innerHTML = "";
-    topResets.forEach(p => {
-        let li = document.createElement("li");
-        li.textContent = `${p.name} - ${p.totalResets} resets`;
-        resetsList.appendChild(li);
+    const resetsTable = document.getElementById("topResetsTable").querySelector("tbody");
+    resetsTable.innerHTML = "";
+    topResets.forEach((p,i) => {
+        const row = document.createElement("tr");
+        row.innerHTML = `<td>${i+1}</td><td>${p.name}</td><td>${p.totalResets}</td>`;
+        resetsTable.appendChild(row);
     });
 }
 
-// Search player by name
 function searchPlayer() {
     const name = document.getElementById("searchInput").value.trim();
     const resultDiv = document.getElementById("searchResult");
     resultDiv.innerHTML = "";
 
     const userId = Object.keys(userIdToName).find(id => userIdToName[id] === name);
-    if (!userId) {
+    if(!userId) {
         resultDiv.textContent = "Player not found";
         return;
     }
 
     const stats = data.player_stats_fixed[userId];
-    if (!stats) {
+    if(!stats) {
         resultDiv.textContent = "Player stats not found";
         return;
     }
@@ -151,7 +166,7 @@ function searchPlayer() {
     header.innerHTML = "<th>Track</th><th>Playtime</th><th>Resets</th>";
     table.appendChild(header);
 
-    for (const [track, trackStats] of Object.entries(stats.tracks)) {
+    for(const [track, trackStats] of Object.entries(stats.tracks)) {
         const row = document.createElement("tr");
         row.innerHTML = `<td>${track}</td><td>${formatSeconds(trackStats.playtime)}</td><td>${trackStats.resets}</td>`;
         table.appendChild(row);
@@ -164,11 +179,10 @@ function searchPlayer() {
     resultDiv.appendChild(table);
 }
 
-// Track selection dropdown
 function renderTrackSelect() {
     const select = document.getElementById("trackSelect");
     select.innerHTML = "";
-    for (let i = 1; i <= 25; i++) {
+    for(let i=1;i<=25;i++) {
         const option = document.createElement("option");
         option.value = `track${i}`;
         option.textContent = `Track ${i}`;
@@ -176,7 +190,6 @@ function renderTrackSelect() {
     }
 }
 
-// Track leaderboard rendering
 function renderTrackLeaderboard() {
     const trackId = document.getElementById("trackSelect").value;
 
@@ -187,22 +200,17 @@ function renderTrackLeaderboard() {
             track: stats.tracks[trackId]
         }));
 
-    leaderboard.sort((a,b) => {
-        return trackLeaderboardMode === 'playtime'
-            ? b.track.playtime - a.track.playtime
-            : b.track.resets - a.track.resets;
-    });
+    leaderboard.sort((a,b) => trackLeaderboardMode === 'playtime'
+        ? b.track.playtime - a.track.playtime
+        : b.track.resets - a.track.resets
+    );
 
-    const list = document.getElementById("trackLeaderboard");
-    list.innerHTML = "";
-    leaderboard.slice(0,10).forEach(p => {
-        const li = document.createElement("li");
-        li.textContent = `${p.name} - ${
-            trackLeaderboardMode === 'playtime'
-            ? formatSeconds(p.track.playtime)
-            : p.track.resets + " resets"
-        }`;
-        list.appendChild(li);
+    const tableBody = document.getElementById("trackLeaderboardTable").querySelector("tbody");
+    tableBody.innerHTML = "";
+    leaderboard.slice(0,10).forEach((p,i) => {
+        const row = document.createElement("tr");
+        row.innerHTML = `<td>${i+1}</td><td>${p.name}</td><td>${trackLeaderboardMode==='playtime'? formatSeconds(p.track.playtime) : p.track.resets}</td>`;
+        tableBody.appendChild(row);
     });
 }
 
@@ -211,7 +219,7 @@ function toggleTrackLeaderboard() {
     renderTrackLeaderboard();
 }
 
-// Load data.json
+// Load data
 fetch('data.json')
     .then(res => res.json())
     .then(json => {
@@ -224,7 +232,6 @@ fetch('data.json')
         renderTrackLeaderboard();
     })
     .catch(err => console.error("Failed to load data.json", err));
-
 </script>
 </body>
 </html>
