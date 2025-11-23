@@ -11,7 +11,7 @@
             border-collapse: collapse;
             margin-bottom: 20px;
             width: 100%;
-            max-width: 800px;
+            max-width: 900px;
         }
         th, td {
             border: 1px solid #ccc;
@@ -52,6 +52,35 @@
 let data = null;
 let userIdToName = {};
 let trackLeaderboardMode = 'playtime'; // 'playtime' or 'resets'
+
+// Mapping track IDs to names
+const trackNames = {
+    1: "Bonk III - The Last Act",
+    2: "Primordial Soup",
+    3: "Ters",
+    4: "Tadpole",
+    5: "WICKED Flip 2",
+    6: "rest in beef",
+    7: "Royalll",
+    8: "FellowPurper=Stupid",
+    9: "toWer",
+    10: "Overwalls",
+    11: "Desolate Road",
+    12: "Float Like a Butterfly",
+    13: "a leap of faith",
+    14: "Drukkies",
+    15: "Lost In The Deep",
+    16: "2 Wheels, 2 Brain Cells",
+    17: "Crashing out in style!",
+    18: "Giraffirigian Kacky Edition",
+    19: "Pain 4",
+    20: "Skeeball Drop",
+    21: "Oops I dropped the editor",
+    22: "Hasenhüpfer",
+    23: "Exaltation",
+    24: "City Slick",
+    25: "spinny thingy"
+};
 
 function formatSeconds(seconds) {
     const d = Math.floor(seconds / 86400);
@@ -166,9 +195,11 @@ function searchPlayer() {
     header.innerHTML = "<th>Track</th><th>Playtime</th><th>Resets</th>";
     table.appendChild(header);
 
-    for(const [track, trackStats] of Object.entries(stats.tracks)) {
+    for(const [trackId, trackStats] of Object.entries(stats.tracks)) {
+        const trackNum = trackId.replace("track", "");
+        const trackName = trackNames[trackNum] || trackId;
         const row = document.createElement("tr");
-        row.innerHTML = `<td>${track}</td><td>${formatSeconds(trackStats.playtime)}</td><td>${trackStats.resets}</td>`;
+        row.innerHTML = `<td>${trackName}</td><td>${formatSeconds(trackStats.playtime)}</td><td>${trackStats.resets}</td>`;
         table.appendChild(row);
     }
 
@@ -185,7 +216,7 @@ function renderTrackSelect() {
     for(let i=1;i<=25;i++) {
         const option = document.createElement("option");
         option.value = `track${i}`;
-        option.textContent = `Track ${i}`;
+        option.textContent = trackNames[i] || `Track ${i}`;
         select.appendChild(option);
     }
 }
