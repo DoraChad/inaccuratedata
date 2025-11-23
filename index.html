@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Inaccurate PP4 Data Statistics</title>
+</head>
+<body>
+    <h1>Inaccurate PP4 Data Statistics</h1>
+
+    <h2>Top 10 General Playtime</h2>
+    <ul id="topPlaytime"></ul>
+
+    <h2>Top 10 General Resets</h2>
+    <ul id="topResets"></ul>
+
+    <h2>Search Player</h2>
+    <input type="text" id="searchInput" placeholder="Enter player name">
+    <button onclick="searchPlayer()">Search</button>
+    <div id="searchResult"></div>
+
+    <h2>Track Leaderboard</h2>
+    <select id="trackSelect" onchange="renderTrackLeaderboard()"></select>
+    <button onclick="toggleTrackLeaderboard()">Toggle Playtime / Resets</button>
+    <ul id="trackLeaderboard"></ul>
+
+<script>
+    let data = null;
+    let trackLeaderboardMode = 'playtime'; // 'playtime' or 'resets'
+
+    // Load the local data.json
+    fetch('data.json')
+        .then(res => res.json())
+        .then(json => {
+            data = json.data; // note the top-level "data" key
+            calculateTotals();
+            renderTop10();
+            renderTrackSelect();
+            renderTrackLeaderboard();
+        })
+        .catch(err => console.error("Failed to load data.json", err));
+
+    function calculateTotals() {
+        for (const [playerName, stats] of Object.entries(data.player_stats)) {
+            let totalPlaytime = 0;
+            let totalResets = 0;
+            for (const trackStats of Object.values(stats)) {
+                if (typeof trackStats.playtime === 'number') totalPlaytime += trackStats.playtime;
+                if (typeof trackStats.resets === 'number') totalResets += trackStats.resets;
+            }
+            stats.totalPlaytime = totalPlaytime;
+            stats.totalResets = totalResets;
+        }
+    }
+
+    function renderTop10() {
+        const players = Object.entries(data.player_stats).map(([name, stats]) => ({name, ...stats}));
+
+        const topPlaytime = [...players].sort((a,b) => b.totalPlaytime - a.totalPlaytime).slice(0,10);
+        const topResets = [...players].sort((a,b) => b.totalResets - a.totalResets).slice(0,10);
+
+        const playtimeList = document.getElementById("topPlaytime");
+        playtimeList.innerHTML = "";
+        topPlaytime.forEach(p => {
+            let li = document.createElement("li");
+            li.textContent = `${p.name} - ${p.totalPlaytime} seconds`;
+            playtimeList.appendChild(li);
+        });
+
+        const resetsList = document.getElementById("topResets");
+        resetsList.innerHTML = "";
+        topResets.forEach(p => {
+            let li = document.createElement("li");
+            li.textContent = `${p.name} - ${p.totalResets} resets`;
+            resetsList.appendChild(li);
+        });
+    }
+
+    function searchPlayer() {
+        const name = document.getElementById("searchInput").value.trim();
+        const resultDiv = document.getElementById("searchResult");
+        resultDiv.innerHTML = "";
+
+        const stats = data.player_stats[name];
+        if (!stats) {
+            resultDiv.textContent = "Player not found";
+            return;
+        }
+
+        const table = document.createElement("table");
+        const header = document.createElement("tr");
+        header.innerHTML = "<th>Track</th><th>Playtime</th><th>Resets</th>";
+        table.appendChild(header);
+
+        for (const [track, trackStats] of Object.entries(stats)) {
+            if (track === "totalPlaytime" || track === "totalResets") continue;
+            const row = document.createElement("tr");
+            row.innerHTML = `<td>${track}</td><td>${trackStats.playtime}</td><td>${trackStats.resets}</td>`;
+            table.appendChild(row);
+        }
+
+        const totals = document.createElement("tr");
+        totals.innerHTML = `<td><strong>Total</strong></td><td>${stats.totalPlaytime}</td><td>${stats.totalResets}</td>`;
+        table.appendChild(totals);
+
+        resultDiv.appendChild(table);
+    }
+
+    function renderTrackSelect() {
+        const select = document.getElementById("trackSelect");
+        select.innerHTML = "";
+        for (let i = 1; i <= 25; i++) {
+            const option = document.createElement("option");
+            option.value = `track${i}`;
+            option.textContent = `Track ${i}`;
+            select.appendChild(option);
+        }
+    }
+
+    function renderTrackLeaderboard() {
+        const trackId = document.getElementById("trackSelect").value;
+        let leaderboard = Object.entries(data.player_stats)
+            .filter(([_, stats]) => stats[trackId])
+            .map(([name, stats]) => ({name, ...stats}));
+
+        leaderboard.sort((a,b) => {
+            return trackLeaderboardMode === 'playtime'
+                ? b[trackId].playtime - a[trackId].playtime
+                : b[trackId].resets - a[trackId].resets;
+        });
+
+        const list = document.getElementById("trackLeaderboard");
+        list.innerHTML = "";
+        leaderboard.slice(0,10).forEach(p => {
+            const li = document.createElement("li");
+            li.textContent = `${p.name} - ${trackLeaderboardMode === 'playtime' ? p[trackId].playtime + "s" : p[trackId].resets + " resets"}`;
+            list.appendChild(li);
+        });
+    }
+
+    function toggleTrackLeaderboard() {
+        trackLeaderboardMode = trackLeaderboardMode === 'playtime' ? 'resets' : 'playtime';
+        renderTrackLeaderboard();
+    }
+</script>
+</body>
+</html>
